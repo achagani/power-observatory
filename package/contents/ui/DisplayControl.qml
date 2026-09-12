@@ -13,6 +13,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Text { text: control.display.name || "Display"; color: "#d5e8f4"; font.pixelSize: 12; font.weight: Font.Medium }
+        InfoButton {heading:"Display refresh"; explanation:"These are the advertised refresh rates at this screen's current resolution. The check mark shows the configured mode, not instantaneous variable refresh. Clicking a rate revalidates and verifies the change through KScreen."}
         Item { Layout.fillWidth: true }
         Text { text: control.display.width ? control.display.width + " × " + control.display.height : "Current mode unavailable"; color: "#8199ac"; font.pixelSize: 11 }
     }

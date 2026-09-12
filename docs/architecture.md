@@ -35,10 +35,14 @@ Add new backends behind capability detection with synthetic fixtures and explici
 - [ASUS charge mode](https://github.com/torvalds/linux/blob/master/Documentation/ABI/testing/sysfs-platform-asus-wmi)
 - [UCSI power contract](https://github.com/torvalds/linux/blob/master/drivers/usb/typec/ucsi/psy.c)
 
-## Visual classification
+## Unified cards and history
 
-`Zones.js` is the shared pure classification layer. Memory ratio thresholds are 60/85/95%; utilization thresholds are 40/80/95%. `MemoryGauge.qml` clamps only its painted fill, not the reported percentage or values. Missing totals and stale samples show unclassified states.
+`Metrics.js` maps telemetry into presentation descriptors: metric ID, value, display text, stable scale, classification policy and explanation. `MetricTile.qml` is shared by utilization, RAM/VRAM/GTT, power, fans and thermal readings. Supplemental settings use `Reading.qml`; both expose `InfoButton.qml` for hover/focus explanations and a click/keyboard-pinned popup.
 
-`PowerGauge.qml` and `ArcGauge.qml` display validated `power_bands` from the collector. These configurable reference bands classify consumption, not physical safety, firmware throttling or adapter headroom. They do not use charger nameplate wattage as a measured denominator. Numeric values remain visible when the pointer saturates.
+`Dashboard.qml` appends every supported metric to a timestamped, in-memory two-minute history, even while its tab is hidden. It retains one predecessor for left-edge interpolation, rejects duplicate/older timestamps, and bounds storage to 256 samples per metric. Missing sensors receive nulls and are removed after their last valid point ages out. Sensor delegate models only change when topology changes, so normal polling does not destroy an open info popup.
 
-`ThermalReading.qml` applies the same sensor's sanitized high/critical limits. Zero, common large sentinel values and inverted high limits are rejected. Critical is the only condition called Danger; missing limits remain unknown. See the [kernel hwmon ABI](https://docs.kernel.org/hwmon/sysfs-interface.html). No control behavior changes with a zone transition.
+`History.js` snapshots each point's threshold/color policy and measurement identity. It splits linear segments at zone boundaries, clips by elapsed time, and does not bridge missing samples, intervals over eight seconds or a policy/measurement-basis change. Prior colors are never recomputed from current settings. `TrendChart.qml` paints opaque two-pixel segments over a ten-percent shaded area; the current bar is separate. A one-second view clock slides the window independently of the two-second collector.
+
+Percentages have fixed 100% scales; power uses configured reference ranges; fans use a 6000 RPM display range; temperature uses the driver's critical threshold or a 120°C reference range. These are visualization scales, not physical maxima. Numeric overflow stays visible while the plotted geometry clips.
+
+Thermal critical warnings have a distinct red warning icon/banner and text. High load/consumption/capacity uses coral with a descriptive label, not a hardware-danger claim. No threshold crossing changes hardware settings. See [design-language.md](design-language.md) for visual conventions.

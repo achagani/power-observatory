@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 2026-09-12
+
+- Standardize resource cards on horizontal current meters plus unobscured trends.
+- Preserve historical zone colors, including interpolated threshold crossings, on timestamped two-minute charts with fixed scales.
+- Leave gaps for missing/stale samples and changed measurement bases; never stretch partial history across the full window.
+- Add hover/focus/tap/keyboard information controls and clarify GPU compute measurement scope.
+- Prioritize RAM/VRAM in Overview and apply the same visual language to cooling and power.
+
 ## 1.2.0 — 2026-09-12
 
 - Add matching RAM/VRAM capacity bars, percentages, threshold markers and pressure labels.

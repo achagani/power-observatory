@@ -8,6 +8,9 @@ Power Observatory is a native Plasma 6 widget, not a website. Keep the runtime d
 - `package/contents/ui/main.qml`: Plasma lifecycle, executable data source, polling/control serialization.
 - `package/contents/ui/Dashboard.qml`: portable dashboard; emit control requests instead of executing them.
 - `package/contents/ui/DisplayControl.qml`: discovered per-output refresh modes.
+- `MetricTile.qml`, `TrendChart.qml`, `InfoButton.qml`: shared presentation and accessible explanations.
+- `History.js`, `Metrics.js`: timestamped history, immutable historical policies and metric definitions.
+- `docs/design-language.md`: mandatory visual conventions for UI changes.
 - `test_telemetry.py`, `tests/`: mocked hardware tests and QML checks.
 - `scripts/build.py`: deterministic distributable archive.
 

@@ -19,7 +19,7 @@ Originally built for an ASUS ROG Flow Z13 with Ryzen AI MAX+ 395 / Radeon 8060S.
 - **CPU:** live graph, logical-thread utilization, frequency, core power, temperature, EPP, governor, boost and load average.
 - **GPU:** live utilization, user-session compute engine activity, media engine, GPU power/clocks, reserved UMA/VRAM and GTT allocations.
 - **NPU:** AMD firmware activity by IPU column, power, frequency, memory traffic and runtime state.
-- **Visual memory and power gauges:** matching RAM and GPU-memory capacity bars, labeled load levels, and APU/CPU/GPU/NPU/battery-discharge gauges with explicit reference thresholds.
+- **One visual language:** horizontal current-value meters and timestamped, zone-colored trends for CPU/GPU activity, RAM/VRAM, power, fan speed and temperatures. Every metric includes an accessible information button.
 - **Cooling and thermal limits:** fan RPM and per-sensor thermal bars; “Danger” appears only at a driver-reported critical temperature. Missing limits remain unclassified.
 - **Native desktop widget:** dark QML dashboard, four scrollable detail views, live history and explicit stale/unavailable states. No telemetry upload or resident service.
 
@@ -61,7 +61,7 @@ kpackagetool6 --type Plasma/Applet --install dist/Power-Observatory.plasmoid
 
 **Power profiles:** click Saver, Balanced or Performance in the green power card. The highlighted value follows the actual daemon state. An unsuccessful change appears as an error in the details area.
 
-**Screen refresh:** use **Display Refresh** at the top of Overview, or the Displays section of Power. Each screen gets its own buttons. The widget changes only that output's mode at its existing resolution. The selected rate gets a check mark after KScreen confirms it. It does not create custom modes or automatically change rates on battery.
+**Screen refresh:** use **Display Refresh** below the memory cards in Overview, or the Displays section of Power. Each screen gets its own buttons. The widget changes only that output's mode at its existing resolution. The selected rate gets a check mark after KScreen confirms it. It does not create custom modes or automatically change rates on battery.
 
 Sensor values update every **2 seconds**; display/profile discovery updates every **10 seconds** and immediately after successful controls. Scroll within Compute, Power and Sensors to see the full details.
 
@@ -78,11 +78,23 @@ Charger type can be detected; nameplate wattage usually cannot. To label your ow
 
 These are optional owner-supplied ratings. Without configuration the widget shows the charger type without an assumed wattage. A negotiated USB-C contract may be lower than the adapter rating. Neither value is measured wall consumption.
 
-## Gauge colors and thresholds
+## Reading a card
+
+Each card uses the same structure: **metric name + ⓘ**, current value/unit, a trend, and a slim current-value meter. The trend has a full-opacity 2 px line over a faint 10% area fill; the meter sits below it and never covers a peak. RAM and GPU memory are the first details in Overview. Refresh controls follow them; scroll within the details area to reach additional metrics.
+
+- Every chart is labeled **Last 2 minutes**, with **−2m / −1m / now** markers. Points are placed using real sample timestamps, not sample counts.
+- Each historical segment retains the zone colors recorded then. Lines split precisely at threshold crossings. Changing thresholds does not recolor the past.
+- Missing samples, gaps over 8 seconds, and measurement-basis changes leave breaks. Startup history is empty until readings arrive; the unused past stays blank. History lives in the widget and resets when it reloads.
+- Scales stay fixed: activity/memory at 0–100%, power at the configured reference range, fans at a 6000 RPM display range, and temperatures at the reported critical value or a 120°C display range. These display ranges are not physical capability limits. Values over range remain exact and get an overflow label; the plot and meter clip at the edge.
+- **ⓘ** works on hover or keyboard focus. Click/tap or press Enter/Space to pin the explanation; Escape, Close, or an outside click dismisses it. Explanations identify units, measurement scope, thresholds and limitations.
+
+**GPU compute activity** means compute-engine time from readable applications owned by your Linux account. Other users/inaccessible processes are excluded; parallel engines can exceed 100%. It is distinct from overall GPU activity and GPU-memory allocation.
+
+## Meter colors and thresholds
 
 Memory bars show **used / total**, percentage, and capacity pressure: low below 60%, moderate from 60%, high from 85%, near full from 95%. CPU/GPU load labels use 40/80/95% boundaries. These are display conventions, not safety limits.
 
-Power gauges use **green low → blue moderate → amber high → red very high draw**. The three transition values appear below each gauge and in its tooltip. Defaults (watts):
+Power meters use **green low → blue moderate → amber high → red very high draw**. The three transition values appear in each card and its info explanation. Defaults (watts):
 
 | Gauge | Moderate starts | High starts | Very high starts |
 | --- | ---: | ---: | ---: |
@@ -107,7 +119,7 @@ To override any domain, add `power_bands_watts` to the same local settings file:
 }
 ```
 
-Each override must contain three finite, positive, increasing watt values (up to 2000 W); invalid entries fall back per domain. Settings are read on the next sample. The gauge needle saturates at its scale endpoint; the numeric value remains untruncated.
+Each override must contain three finite, positive, increasing watt values (up to 2000 W); invalid entries fall back per domain. Settings are read on the next sample. The current-value bar saturates at its scale endpoint; the numeric value remains untruncated.
 
 Thermal bars use that sensor's own kernel `temp*_max` / `temp*_crit`. **Danger · critical** means the reading reaches the reported critical threshold; **High · over max** means it reaches the reported high limit. **Near critical** starts at 90% of the critical value. With no usable driver limit, the widget says **Limit unavailable** instead of inventing a safe/danger range. Missing or stale data receives no colored status.
 
