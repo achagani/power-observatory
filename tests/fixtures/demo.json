@@ -1,0 +1,191 @@
+{
+  "timestamp": 1,
+  "cpu": {
+    "name": "AMD Ryzen AI MAX+ 395 w/ Radeon 8060S",
+    "busy": 12.4,
+    "temp": 51,
+    "ghz": 3.12,
+    "watts": 9.4,
+    "cores": [
+      6,
+      12,
+      3,
+      45,
+      8,
+      4,
+      12,
+      16,
+      6,
+      12,
+      3,
+      45,
+      8,
+      4,
+      12,
+      16,
+      6,
+      12,
+      3,
+      45,
+      8,
+      4,
+      12,
+      16,
+      6,
+      12,
+      3,
+      45,
+      8,
+      4,
+      12,
+      16
+    ],
+    "governor": "powersave",
+    "epp": "balance_performance",
+    "driver": "amd-pstate-epp",
+    "min_ghz": 0.6,
+    "max_ghz": 5.1,
+    "boost": "1",
+    "load": [
+      "0.52",
+      "0.61",
+      "0.45"
+    ]
+  },
+  "ram": {
+    "total": 34359738368,
+    "used": 9878424780.8,
+    "available": 24481313587.2,
+    "percent": 28.75,
+    "cached": 4294967296,
+    "swap_total": 17179869184,
+    "swap_used": 0
+  },
+  "gpu": {
+    "busy": 8,
+    "temp": 49,
+    "clock": 1100,
+    "mem_clock": 1000,
+    "watts": 5.2,
+    "compute": 2.1,
+    "media": 0,
+    "vram_used": 3435973836.8,
+    "vram_total": 103079215104,
+    "gtt_used": 429496729.6,
+    "gtt_total": 17179869184,
+    "policy": "auto"
+  },
+  "npu": {
+    "present": true,
+    "name": "RyzenAI-npu5",
+    "state": "suspended",
+    "columns": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "busy": 0,
+    "watts": 0,
+    "clock": 0,
+    "reads": 0,
+    "writes": 0
+  },
+  "battery": {
+    "present": true,
+    "ac": true,
+    "status": "Not charging",
+    "percent": 80,
+    "watts": 0,
+    "smoothed_watts": 0,
+    "voltage": 16.8,
+    "energy": 56,
+    "full": 70,
+    "design": 70,
+    "health": 100,
+    "cycles": 25,
+    "limit": 80,
+    "seconds": null
+  },
+  "apu_watts": 24.6,
+  "profile": "balanced",
+  "platform_profile": "balanced",
+  "charger": {
+    "kind": "barrel",
+    "label": "ASUS adapter \u00b7 200 W rated",
+    "rated_watts": 200,
+    "recommended": "performance",
+    "ports": []
+  },
+  "displays": [
+    {
+      "id": "1",
+      "name": "eDP-1",
+      "mode_id": "fast",
+      "hz": 180,
+      "width": 2560,
+      "height": 1600,
+      "scale": 1.2,
+      "refresh_modes": [
+        {
+          "id": "slow",
+          "hz": 60,
+          "active": false
+        },
+        {
+          "id": "fast",
+          "hz": 180,
+          "active": true
+        }
+      ],
+      "vrr": "Unknown"
+    }
+  ],
+  "brightness": 65,
+  "limits": {
+    "stapm_power_limit": null,
+    "current_stapm_power_limit": null
+  },
+  "asus_controls": {},
+  "dram_reads": 1500,
+  "dram_writes": 320,
+  "uptime": 7200,
+  "fans": [
+    {
+      "name": "cpu_fan",
+      "value": 2400,
+      "unit": "RPM",
+      "path": "Example CPU fan sensor"
+    },
+    {
+      "name": "gpu_fan",
+      "value": 2600,
+      "unit": "RPM",
+      "path": "Example GPU fan sensor"
+    }
+  ],
+  "sensors": [
+    {
+      "name": "CPU \u00b7 Tctl",
+      "value": 51,
+      "unit": "\u00b0C",
+      "path": "Example temperature sensor"
+    },
+    {
+      "name": "GPU \u00b7 edge",
+      "value": 49,
+      "unit": "\u00b0C",
+      "path": "Example temperature sensor"
+    },
+    {
+      "name": "NVMe \u00b7 Composite",
+      "value": 38,
+      "unit": "\u00b0C",
+      "path": "Example temperature sensor"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "outputs": [
+    {
+      "id": 1,
+      "name": "eDP-1",
+      "connected": true,
+      "enabled": true,
+      "currentModeId": "fast",
+      "scale": 1.2,
+      "modes": [
+        {
+          "id": "slow",
+          "refreshRate": 60,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        },
+        {
+          "id": "fast",
+          "refreshRate": 180,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        },
+        {
+          "id": "duplicate",
+          "refreshRate": 180,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        },
+        {
+          "id": "other",
+          "refreshRate": 120,
+          "size": {
+            "width": 1920,
+            "height": 1080
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "DP-1",
+      "connected": true,
+      "enabled": true,
+      "currentModeId": "fractional",
+      "scale": 1,
+      "modes": [
+        {
+          "id": "fractional",
+          "refreshRate": 59.94,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        },
+        {
+          "id": "integer",
+          "refreshRate": 60,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        },
+        {
+          "id": "high",
+          "refreshRate": 144,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "HDMI-A-1",
+      "connected": false,
+      "enabled": true,
+      "currentModeId": "1",
+      "modes": [
+        {
+          "id": "1",
+          "refreshRate": 60,
+          "size": {
+            "width": 2560,
+            "height": 1600
+          }
+        }
+      ]
+    }
+  ]
+}

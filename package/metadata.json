@@ -1,0 +1,19 @@
+{
+  "KPlugin": {
+    "Id": "local.power.observatory",
+    "Name": "Power Observatory",
+    "Description": "Live power, thermals, battery and compute telemetry for Ryzen AI",
+    "Version": "1.1.0",
+    "License": "MIT",
+    "Authors": [
+      {
+        "Name": "Aslam Chagani"
+      }
+    ],
+    "Icon": "utilities-system-monitor",
+    "Category": "System Information",
+    "Website": "https://github.com/achagani/power-observatory"
+  },
+  "KPackageStructure": "Plasma/Applet",
+  "X-Plasma-API-Minimum-Version": "6.0"
+}
