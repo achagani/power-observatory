@@ -2,10 +2,10 @@
   "timestamp": 1,
   "cpu": {
     "name": "AMD Ryzen AI MAX+ 395 w/ Radeon 8060S",
-    "busy": 12.4,
-    "temp": 51,
+    "busy": 97,
+    "temp": 96,
     "ghz": 3.12,
-    "watts": 9.4,
+    "watts": 64,
     "cores": [
       6,
       12,
@@ -54,22 +54,22 @@
   },
   "ram": {
     "total": 34359738368,
-    "used": 9878424780.8,
+    "used": 33328946216.96,
     "available": 24481313587.2,
-    "percent": 28.75,
+    "percent": 97,
     "cached": 4294967296,
     "swap_total": 17179869184,
     "swap_used": 0
   },
   "gpu": {
-    "busy": 8,
-    "temp": 49,
+    "busy": 99,
+    "temp": 110,
     "clock": 1100,
     "mem_clock": 1000,
-    "watts": 5.2,
+    "watts": 52,
     "compute": 2.1,
     "media": 0,
-    "vram_used": 3435973836.8,
+    "vram_used": 101017630801.92,
     "vram_total": 103079215104,
     "gtt_used": 429496729.6,
     "gtt_total": 17179869184,
@@ -90,17 +90,17 @@
       0
     ],
     "busy": 0,
-    "watts": 0,
+    "watts": 11,
     "clock": 0,
     "reads": 0,
     "writes": 0
   },
   "battery": {
     "present": true,
-    "ac": true,
-    "status": "Not charging",
-    "percent": 80,
-    "watts": 0,
+    "ac": false,
+    "status": "Discharging",
+    "percent": 22,
+    "watts": 48,
     "smoothed_watts": 0,
     "voltage": 16.8,
     "energy": 56,
@@ -109,16 +109,16 @@
     "health": 100,
     "cycles": 25,
     "limit": 80,
-    "seconds": null
+    "seconds": 1155
   },
-  "apu_watts": 24.6,
+  "apu_watts": 103,
   "profile": "balanced",
   "platform_profile": "balanced",
   "charger": {
-    "kind": "barrel",
-    "label": "ASUS adapter \u00b7 200 W rated",
-    "rated_watts": 200,
-    "recommended": "performance",
+    "kind": "battery",
+    "label": "Battery only",
+    "rated_watts": null,
+    "recommended": "power-saver",
     "ports": []
   },
   "displays": [
@@ -171,7 +171,7 @@
   "sensors": [
     {
       "name": "CPU \u00b7 Tctl",
-      "value": 51,
+      "value": 96,
       "unit": "\u00b0C",
       "path": "Example temperature sensor",
       "high": 80,
@@ -179,7 +179,7 @@
     },
     {
       "name": "GPU \u00b7 edge",
-      "value": 49,
+      "value": 110,
       "unit": "\u00b0C",
       "path": "Example temperature sensor",
       "high": null,
@@ -187,7 +187,7 @@
     },
     {
       "name": "NVMe \u00b7 Composite",
-      "value": 38,
+      "value": 82,
       "unit": "\u00b0C",
       "path": "Example temperature sensor",
       "high": 80,

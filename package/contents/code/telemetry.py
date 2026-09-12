@@ -2,6 +2,7 @@
 """Read-only, dependency-free telemetry for Power Observatory. No privileged reads."""
 import ctypes as C
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -135,6 +136,42 @@ def slow_data():
     return dict(displays=displays, profile=run(['powerprofilesctl','get']),
                 profile_details=run(['powerprofilesctl','list']))
 
+DEFAULT_POWER_BANDS = {
+    'apu': [30, 60, 90], 'cpu': [15, 35, 60], 'gpu': [10, 25, 50],
+    'npu': [2, 5, 10], 'battery': [15, 30, 45],
+}
+
+def load_settings():
+    try:
+        path=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'power-observatory/settings.json'
+        result=json.loads(path.read_text())
+        return result if isinstance(result,dict) else {}
+    except (OSError, ValueError): return {}
+
+def power_bands(settings):
+    """Display reference bands only; never infer a hardware danger limit."""
+    custom=settings.get('power_bands_watts',{})
+    if not isinstance(custom,dict): custom={}
+    result={}
+    for key, default in DEFAULT_POWER_BANDS.items():
+        values=custom.get(key)
+        valid=(isinstance(values,list) and len(values)==3
+               and all(isinstance(v,(int,float)) and not isinstance(v,bool)
+                       and 0<v<=2000 and math.isfinite(v) for v in values)
+               and values[0]<values[1]<values[2])
+        result[key]=values[:] if valid else default[:]
+    return result
+
+def sensor_limits(path):
+    """Reject common bogus/sentinel values; retain limits only for this sensor."""
+    limits={}
+    for key,suffix in [('high','max'),('critical','crit')]:
+        value=number(path.with_name(path.name.replace('_input','_'+suffix)),1000)
+        limits[key]=value if value is not None and 0<value<200 else None
+    if limits['high'] is not None and limits['critical'] is not None and limits['high']>limits['critical']:
+        limits['high']=None
+    return limits
+
 def charger_data(ac):
     mode = number('/sys/class/firmware-attributes/asus-armoury/attributes/charge_mode/current_value')
     if mode is None: mode = number('/sys/devices/platform/asus-nb-wmi/charge_mode')
@@ -149,11 +186,8 @@ def charger_data(ac):
                           limit_watts=volts*amps if volts and amps else None))
     kind = 'battery' if ac is False else 'barrel' if ac and mode in (1,3) else 'usb' if ac and (mode==2 or ports) else 'ac' if ac else 'unknown'
     # Charger nameplate ratings are user configuration, not sensor measurements.
-    try:
-        settings=json.loads((Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'power-observatory/settings.json').read_text())
-        rating=settings.get(kind+'_rated_watts')
-        if not isinstance(rating,(int,float)) or isinstance(rating,bool) or not 0 < rating < 1000: rating=None
-    except (OSError, ValueError, AttributeError): rating=None
+    rating=load_settings().get(kind+'_rated_watts')
+    if not isinstance(rating,(int,float)) or isinstance(rating,bool) or not 0 < rating < 1000: rating=None
     label={'battery':'Battery only','barrel':'ASUS adapter',
            'usb':'USB-C','ac':'AC adapter','unknown':'Power source unknown'}[kind]
     if rating: label += f' · {rating:g} W rated'
@@ -200,7 +234,7 @@ def collect(previous=None, with_slow=True):
             value=number(f,1000)
             if value is None: continue
             label=read(h/(f.name.replace('_input','_label')), f.stem.replace('_input',''))
-            sensors.append(dict(name=name+' · '+label, value=value, unit='°C', path=str(f)))
+            sensors.append(dict(name=name+' · '+label, value=value, unit='°C', path=str(f), **sensor_limits(f)))
             if name=='k10temp' and label=='Tctl': cpu_temp=value
         for f in sorted(h.glob('fan*_input')):
             value=number(f)
@@ -263,7 +297,7 @@ def collect(previous=None, with_slow=True):
     # Values exported by ASUS firmware are raw controls; not necessarily enforced watts.
     asus={p.name:number(p) for p in Path('/sys/devices/platform/asus-nb-wmi').glob('ppt_*')}
     limits={k:(m[k]/1000 if m.get(k) is not None else None) for k in ('stapm_power_limit','current_stapm_power_limit')}
-    out=dict(timestamp=time.time(), cpu=cpu, ram=ram, gpu=gpu, npu=npu, battery=battery,
+    out=dict(timestamp=time.time(), power_bands=power_bands(load_settings()), cpu=cpu, ram=ram, gpu=gpu, npu=npu, battery=battery,
         apu_watts=apu_watts, sensors=sensors, fans=fans, charger=charger_data(ac), profile=slow.get('profile'),
         profile_details=slow.get('profile_details'), platform_profile=read('/sys/firmware/acpi/platform_profile'),
         displays=slow.get('displays',[]), brightness=brightness, limits=limits, asus_controls=asus,

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-09-12
+
+- Add matching RAM/VRAM capacity bars, percentages, threshold markers and pressure labels.
+- Add APU/CPU/GPU/NPU/battery-discharge gauges with configurable, explicitly labeled watt reference bands.
+- Distinguish high consumption/utilization from hardware danger. Thermal Danger requires a driver-reported critical threshold.
+- Preserve missing/stale/zero readings and numeric values beyond the gauge scale.
+- Test threshold boundaries, invalid configuration, saturated memory, missing limits and stale visual states.
+
 ## 1.1.0 — 2026-09-12
 
 First public release.
