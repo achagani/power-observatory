@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "Zones.js" as Zones
 
 Rectangle {
     id: root
@@ -21,6 +22,7 @@ Rectangle {
     readonly property var npu: telemetry.npu || ({})
     readonly property var battery: telemetry.battery || ({})
     readonly property var display: (telemetry.displays || [])[0] || ({})
+    readonly property var criticalSensors: stale ? [] : (telemetry.sensors || []).filter(s => Zones.valid(s.critical) && s.critical > 0 && typeof s.value === "number" && isFinite(s.value) && s.value >= s.critical)
     readonly property color mint: "#75e3c5"
     readonly property color blue: "#83bcff"
     readonly property color amber: "#f0c582"
@@ -29,6 +31,10 @@ Rectangle {
     border.color: "#304250"
     implicitWidth: 640
     implicitHeight: 850
+    function bands(key) {
+        const defaults={apu:[30,60,90],cpu:[15,35,60],gpu:[10,25,50],npu:[2,5,10],battery:[15,30,45]}
+        return (telemetry.power_bands || {})[key] || defaults[key]
+    }
     function has(v) { return v !== null && v !== undefined && v !== "" }
     function num(v, unit, digits) { return has(v) ? Number(v).toFixed(digits === undefined ? 0 : digits) + (unit || "") : "—" }
     function txt(v) { return has(v) ? String(v) : "Unavailable" }
@@ -65,6 +71,17 @@ Rectangle {
             Item { Layout.fillWidth: true }
             Rectangle { width: 7; height: 7; radius: 4; color: root.stale ? "#f0a87b" : root.mint }
             Text { text: root.stale ? "STALE" : (root.telemetry.timestamp ? "LIVE" : "STARTING"); color: root.stale ? "#f0a87b" : root.mint; font.pixelSize: 10; font.letterSpacing: 1 }
+        }
+        Rectangle {
+            objectName:"thermal-danger"
+            visible:root.criticalSensors.length>0
+            Layout.fillWidth:true; implicitHeight:dangerRow.implicitHeight+18
+            radius:10; color:"#49262e"; border.color:"#a35765"
+            RowLayout {
+                id:dangerRow; anchors.fill:parent; anchors.margins:9
+                Text {Layout.fillWidth:true; wrapMode:Text.WordWrap; text:root.criticalSensors.length ? "Critical temperature · "+root.criticalSensors[0].name+" "+root.num(root.criticalSensors[0].value,"°C",1)+(root.criticalSensors.length>1?" +"+(root.criticalSensors.length-1):"") : ""; color:"#ffd2d5"; font.pixelSize:11; font.weight:Font.DemiBold}
+                Button {text:"Sensors"; implicitHeight:28; onClicked:root.tab=3}
+            }
         }
         Rectangle {
             Layout.fillWidth: true; implicitHeight: powerLayout.implicitHeight+28; radius: 16
@@ -118,9 +135,9 @@ Rectangle {
         }
         RowLayout {
             Layout.fillWidth: true; spacing: 10
-            MetricCard { Layout.fillWidth:true; Layout.preferredWidth:1; title:"CPU"; value:root.num(root.cpu.busy,"%",1); detail:root.num(root.cpu.temp,"°C")+"  ·  "+root.num(root.cpu.ghz," GHz",2); history:root.cpuHistory; accent:root.mint }
-            MetricCard { Layout.fillWidth:true; Layout.preferredWidth:1; title:"GPU"; value:root.num(root.gpu.busy,"%",1); detail:root.num(root.gpu.temp,"°C")+"  ·  "+root.num(root.gpu.clock," MHz"); history:root.gpuHistory; accent:root.blue }
-            MetricCard { Layout.fillWidth:true; Layout.preferredWidth:1; title:"APU POWER"; value:root.num(root.telemetry.apu_watts," W",1); detail:"Chip power · not wall draw"; history:root.powerHistory; accent:root.amber; ceiling:0 }
+            MetricCard { Layout.fillWidth:true; Layout.preferredWidth:1; title:"CPU"; load:root.stale ? null : root.cpu.busy; value:root.num(root.cpu.busy,"%",1); detail:root.num(root.cpu.temp,"°C")+"  ·  "+root.num(root.cpu.ghz," GHz",2); history:root.cpuHistory; accent:root.mint }
+            MetricCard { Layout.fillWidth:true; Layout.preferredWidth:1; title:"GPU"; load:root.stale ? null : root.gpu.busy; value:root.num(root.gpu.busy,"%",1); detail:root.num(root.gpu.temp,"°C")+"  ·  "+root.num(root.gpu.clock," MHz"); history:root.gpuHistory; accent:root.blue }
+            PowerGauge {objectName:"apu-gauge"; Layout.fillWidth:true; Layout.preferredWidth:1; watts:root.stale?null:root.telemetry.apu_watts; bands:root.bands("apu"); history:root.powerHistory; showHistory:true}
         }
         RowLayout {
             Layout.fillWidth: true; spacing: 6
@@ -157,9 +174,11 @@ Rectangle {
                     }
                     Note {visible:!(root.telemetry.displays || []).length; text:"Display modes unavailable. Check that kscreen-doctor is installed and your Plasma session is running."}
                     Caption {text:"MEMORY & COOLING"}
-                    Reading {label:"System RAM"; value:root.gib(root.ram.used)+" / "+root.gib(root.ram.total); hint:"Used = MemTotal − MemAvailable. GPU-reserved memory is excluded from Linux RAM."}
-                    Rectangle { Layout.fillWidth:true; height:5; radius:3; color:"#233340"; Layout.bottomMargin:8; Rectangle {width:parent.width*(root.ram.percent || 0)/100; height:5; radius:3; color:root.blue} }
-                    Reading {label:"GPU reserved memory (UMA)"; value:root.gib(root.gpu.vram_used)+" / "+root.gib(root.gpu.vram_total); hint:"Firmware-reserved GPU memory, reported as VRAM by amdgpu. It is physically unified memory."}
+                    RowLayout {
+                        Layout.fillWidth:true; spacing:10
+                        MemoryGauge {objectName:"ram-gauge"; Layout.preferredWidth:1; title:"SYSTEM RAM"; used:root.stale?null:root.ram.used; total:root.ram.total; hint:"Used = MemTotal − MemAvailable. GPU-reserved memory is excluded."}
+                        MemoryGauge {objectName:"vram-gauge"; Layout.preferredWidth:1; title:"GPU MEMORY"; used:root.stale?null:root.gpu.vram_used; total:root.gpu.vram_total; hint:"Firmware-reserved UMA/VRAM. This pool is separate from Linux's available system RAM."}
+                    }
                     Repeater { model: (root.telemetry.fans || []).filter(f=>f.name!=="acpi_fan"); delegate: Reading {required property var modelData; label:modelData.name.replace("cpu_fan","CPU fan").replace("gpu_fan","GPU fan"); value:root.num(modelData.value," RPM"); hint:modelData.path; accent:root.mint} }
                     Caption {text:"ACCELERATORS"}
                     Reading {label:"GPU compute · your processes"; value:root.num(root.gpu.compute,"%",1); hint:"Sum of per-client compute engine time / elapsed time. Can exceed 100% with parallel engines; excludes inaccessible processes."}
@@ -186,15 +205,16 @@ Rectangle {
                             }
                         }
                     }
-                    Reading {label:"CPU core power"; value:root.num(root.cpu.watts," W",2)}
+                    Reading {label:"CPU core power"; value:root.num(root.cpu.watts," W",2)+" · "+Zones.power(root.cpu.watts,root.bands("cpu")).label; accent:Zones.power(root.stale?null:root.cpu.watts,root.bands("cpu")).color}
                     Reading {label:"Frequency policy range"; value:root.num(root.cpu.min_ghz,"",2)+"–"+root.num(root.cpu.max_ghz," GHz",2)}
                     Reading {label:"Load average · 1 / 5 / 15 min"; value:(root.cpu.load || []).join(" / ")}
                     Caption {text:"AMD GPU · MEMORY & ENGINES"}
                     Reading {label:"Compute engine · your processes"; value:root.num(root.gpu.compute,"%",1)}
                     Reading {label:"Video engine"; value:root.num(root.gpu.media,"%",1)}
-                    Reading {label:"GPU domain power"; value:root.num(root.gpu.watts," W",2)}
+                    Reading {label:"GPU domain power"; value:root.num(root.gpu.watts," W",2)+" · "+Zones.power(root.gpu.watts,root.bands("gpu")).label; accent:Zones.power(root.stale?null:root.gpu.watts,root.bands("gpu")).color}
                     Reading {label:"GPU / memory clock"; value:root.num(root.gpu.clock," MHz")+" / "+root.num(root.gpu.mem_clock," MHz")}
-                    Reading {label:"Reserved GPU memory"; value:root.gib(root.gpu.vram_used)+" / "+root.gib(root.gpu.vram_total)}
+                    MemoryGauge {title:"GPU MEMORY · UMA / VRAM"; used:root.stale?null:root.gpu.vram_used; total:root.gpu.vram_total}
+                    MemoryGauge {title:"GTT · SHARED ALLOCATION"; used:root.stale?null:root.gpu.gtt_used; total:root.gpu.gtt_total; hint:"An allocation from system memory, not extra physical RAM."}
                     Reading {label:"GTT · shared system allocation"; value:root.gib(root.gpu.gtt_used)+" / "+root.gib(root.gpu.gtt_total)}
                     Reading {label:"DRAM read / write"; value:root.num(root.telemetry.dram_reads," MB/s")+" / "+root.num(root.telemetry.dram_writes," MB/s")}
                     Caption {text:"RYZEN AI · NPU"}
@@ -209,7 +229,17 @@ Rectangle {
                 }
                 ColumnLayout {
                     visible:root.tab===2; Layout.fillWidth:true; spacing:2
-                    Caption {text:"ACTIVE POWER POLICY"; Layout.topMargin:0}
+                    Caption {text:"POWER DRAW · REFERENCE ZONES"; Layout.topMargin:0}
+                    Note {text:"Green low · blue moderate · amber high · red very high. These configurable watt bands describe consumption, not hardware danger. Hover a gauge for exact thresholds."}
+                    GridLayout {
+                        Layout.fillWidth:true; columns:2; columnSpacing:10; rowSpacing:10; Layout.topMargin:8
+                        PowerGauge {Layout.fillWidth:true; Layout.preferredWidth:1; title:"APU · CHIP TOTAL"; watts:root.stale?null:root.telemetry.apu_watts; bands:root.bands("apu")}
+                        PowerGauge {Layout.fillWidth:true; Layout.preferredWidth:1; title:"CPU CORES"; watts:root.stale?null:root.cpu.watts; bands:root.bands("cpu"); hint:"CPU core power. A component of chip power, not an extra load to add."}
+                        PowerGauge {Layout.fillWidth:true; Layout.preferredWidth:1; title:"GPU DOMAIN"; watts:root.stale?null:root.gpu.watts; bands:root.bands("gpu"); hint:"GPU domain power. A component of chip power."}
+                        PowerGauge {Layout.fillWidth:true; Layout.preferredWidth:1; title:"NPU DOMAIN"; watts:root.stale?null:root.npu.watts; bands:root.bands("npu"); hint:"NPU domain power reported by AMD firmware."}
+                        PowerGauge {visible:root.battery.status==="Discharging"; Layout.fillWidth:true; Layout.preferredWidth:1; title:"BATTERY DISCHARGE"; watts:root.stale?null:root.battery.watts; bands:root.bands("battery"); hint:"Whole-system draw from the battery, not APU power."}
+                    }
+                    Caption {text:"ACTIVE POWER POLICY"}
                     Reading {label:"Detected source"; value:root.txt((root.telemetry.charger || {}).label)}
                     Reading {label:"Suggested profile"; value:root.txt((root.telemetry.charger || {}).recommended); hint:"Suggestion only. Source changes never automatically change your profile."}
                     Repeater {model:(root.telemetry.charger || {}).ports || []; delegate:Reading {required property var modelData; label:"USB-C negotiated contract"; value:root.num(modelData.limit_watts," W",1)+" · "+root.num(modelData.volts," V",1)+" × "+root.num(modelData.amps," A",1)} }
@@ -249,10 +279,10 @@ Rectangle {
                     Caption {text:"FAN TACHOMETERS"; Layout.topMargin:0}
                     Repeater {model:root.telemetry.fans || []; delegate:Reading {required property var modelData; label:modelData.name; value:root.num(modelData.value," RPM"); hint:modelData.path; accent:root.mint} }
                     Note {text:"The ACPI fan may mirror one of the ASUS fans; it is shown as a separate sensor, not a third physical fan."}
-                    Caption {text:"TEMPERATURE SENSORS"}
-                    Repeater {model:root.telemetry.sensors || []; delegate:Reading {required property var modelData; label:modelData.name; value:root.num(modelData.value," °C",1); hint:modelData.path; accent:modelData.value>85?"#f6ab85":"#cfe4ef"} }
+                    Caption {text:"TEMPERATURES · DRIVER LIMITS"}
+                    Repeater {model:root.telemetry.sensors || []; delegate:ThermalReading {required property var modelData; sensor:modelData; stale:root.stale} }
                     Caption {text:"TELEMETRY NOTES"}
-                    Note {text:"Hover a sensor for its kernel source path. A dash means unavailable, never zero. AMD metrics v3 provide GPU, CPU and NPU domain readings. All monitoring is read-only."}
+                    Note {text:"Danger is shown only at a driver-reported critical temperature. Missing limits remain unclassified. Hover a sensor for its source and limits. AMD metrics v3 provide GPU, CPU and NPU domain readings. All monitoring is read-only."}
                 }
                 Note {visible:root.error.length>0; text:root.error; color:"#f0a87b"; Layout.topMargin:12}
             }

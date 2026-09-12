@@ -19,7 +19,8 @@ Originally built for an ASUS ROG Flow Z13 with Ryzen AI MAX+ 395 / Radeon 8060S.
 - **CPU:** live graph, logical-thread utilization, frequency, core power, temperature, EPP, governor, boost and load average.
 - **GPU:** live utilization, user-session compute engine activity, media engine, GPU power/clocks, reserved UMA/VRAM and GTT allocations.
 - **NPU:** AMD firmware activity by IPU column, power, frequency, memory traffic and runtime state.
-- **Memory and cooling:** RAM, cache, swap, DRAM traffic, fan RPM and temperature sensors with source-path tooltips.
+- **Visual memory and power gauges:** matching RAM and GPU-memory capacity bars, labeled load levels, and APU/CPU/GPU/NPU/battery-discharge gauges with explicit reference thresholds.
+- **Cooling and thermal limits:** fan RPM and per-sensor thermal bars; “Danger” appears only at a driver-reported critical temperature. Missing limits remain unclassified.
 - **Native desktop widget:** dark QML dashboard, four scrollable detail views, live history and explicit stale/unavailable states. No telemetry upload or resident service.
 
 ## Install
@@ -76,6 +77,39 @@ Charger type can be detected; nameplate wattage usually cannot. To label your ow
 ```
 
 These are optional owner-supplied ratings. Without configuration the widget shows the charger type without an assumed wattage. A negotiated USB-C contract may be lower than the adapter rating. Neither value is measured wall consumption.
+
+## Gauge colors and thresholds
+
+Memory bars show **used / total**, percentage, and capacity pressure: low below 60%, moderate from 60%, high from 85%, near full from 95%. CPU/GPU load labels use 40/80/95% boundaries. These are display conventions, not safety limits.
+
+Power gauges use **green low → blue moderate → amber high → red very high draw**. The three transition values appear below each gauge and in its tooltip. Defaults (watts):
+
+| Gauge | Moderate starts | High starts | Very high starts |
+| --- | ---: | ---: | ---: |
+| APU chip total | 30 | 60 | 90 |
+| CPU cores | 15 | 35 | 60 |
+| GPU domain | 10 | 25 | 50 |
+| NPU domain | 2 | 5 | 10 |
+| Battery discharge | 15 | 30 | 45 |
+
+These are configurable visualization references, **not manufacturer danger thresholds, enforced power limits, or charger headroom**. CPU/GPU/NPU domain powers are not extra loads to add to APU power. Battery discharge measures a different scope. Charging power is not graded against discharge thresholds.
+
+To override any domain, add `power_bands_watts` to the same local settings file:
+
+```json
+{
+  "barrel_rated_watts": 200,
+  "usb_rated_watts": 100,
+  "power_bands_watts": {
+    "apu": [25, 50, 80],
+    "battery": [12, 25, 40]
+  }
+}
+```
+
+Each override must contain three finite, positive, increasing watt values (up to 2000 W); invalid entries fall back per domain. Settings are read on the next sample. The gauge needle saturates at its scale endpoint; the numeric value remains untruncated.
+
+Thermal bars use that sensor's own kernel `temp*_max` / `temp*_crit`. **Danger · critical** means the reading reaches the reported critical threshold; **High · over max** means it reaches the reported high limit. **Near critical** starts at 90% of the critical value. With no usable driver limit, the widget says **Limit unavailable** instead of inventing a safe/danger range. Missing or stale data receives no colored status.
 
 ## Measurement limits
 

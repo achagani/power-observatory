@@ -34,3 +34,11 @@ Add new backends behind capability detection with synthetic fixtures and explici
 - [AMD metrics ABI](https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/amd/include/kgd_pp_interface.h)
 - [ASUS charge mode](https://github.com/torvalds/linux/blob/master/Documentation/ABI/testing/sysfs-platform-asus-wmi)
 - [UCSI power contract](https://github.com/torvalds/linux/blob/master/drivers/usb/typec/ucsi/psy.c)
+
+## Visual classification
+
+`Zones.js` is the shared pure classification layer. Memory ratio thresholds are 60/85/95%; utilization thresholds are 40/80/95%. `MemoryGauge.qml` clamps only its painted fill, not the reported percentage or values. Missing totals and stale samples show unclassified states.
+
+`PowerGauge.qml` and `ArcGauge.qml` display validated `power_bands` from the collector. These configurable reference bands classify consumption, not physical safety, firmware throttling or adapter headroom. They do not use charger nameplate wattage as a measured denominator. Numeric values remain visible when the pointer saturates.
+
+`ThermalReading.qml` applies the same sensor's sanitized high/critical limits. Zero, common large sentinel values and inverted high limits are rejected. Critical is the only condition called Danger; missing limits remain unknown. See the [kernel hwmon ABI](https://docs.kernel.org/hwmon/sysfs-interface.html). No control behavior changes with a zone transition.
