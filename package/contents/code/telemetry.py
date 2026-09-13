@@ -162,6 +162,47 @@ def power_bands(settings):
         result[key]=values[:] if valid else default[:]
     return result
 
+def positive(value, ceiling):
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value) and 0 < value <= ceiling)
+
+def power_references(settings, limits):
+    """Match limits to their measured domain; never substitute charger ratings."""
+    bands=power_bands(settings)
+    custom=settings.get('power_bands_watts', {})
+    if not isinstance(custom, dict): custom={}
+    references={}
+    for domain, edges in bands.items():
+        configured=power_bands({'power_bands_watts': {domain: custom.get(domain)}})[domain]
+        values=custom.get(domain)
+        is_custom=isinstance(values,list) and values==configured and all(positive(v,2000) for v in values)
+        references[domain]=dict(source='User configured' if is_custom else 'Estimated reference',
+                                maximum=edges[2]*4/3)
+        if domain=='apu' and not is_custom:
+            for name in ('current_stapm_power_limit','stapm_power_limit'):
+                limit=limits.get(name)
+                if positive(limit,2000):
+                    bands[domain]=[limit*f for f in (.4,.8,.95)]
+                    references[domain]=dict(source='Firmware sustained limit', maximum=limit, field=name)
+                    break
+    return bands,references
+
+def fan_reference(path, value, settings, previous):
+    """Discover per-channel references without changing fan controls."""
+    identity=re.sub(r'/hwmon/hwmon[0-9]+(?=/)', '', str(path.resolve()))
+    overrides=settings.get('fan_reference_rpm',{})
+    if not isinstance(overrides,dict): overrides={}
+    configured=overrides.get(identity,overrides.get(str(path)))
+    driver=number(path.with_name(path.name.replace('_input','_max')))
+    old=previous.get(identity,0)
+    peak=max(old if positive(old,100000) else 0, value if positive(value,100000) else 0)
+    if positive(configured,100000): maximum,source=configured,'User configured'
+    elif positive(driver,100000): maximum,source=driver,'Driver high reference'
+    else:
+        maximum=math.ceil(peak/1000)*1000 if peak else None
+        source='Estimated · observed range' if maximum else 'Reference unavailable'
+    return dict(identity=identity,reference_rpm=maximum,reference_source=source),peak
+
 def sensor_limits(path):
     """Reject common bogus/sentinel values; retain limits only for this sensor."""
     limits={}
@@ -227,7 +268,9 @@ def collect(previous=None, with_slow=True):
     total=mem.get('MemTotal',0); used=total-mem.get('MemAvailable',0)
     ram=dict(total=total, used=used, available=mem.get('MemAvailable'), percent=used/total*100 if total else None,
         swap_total=mem.get('SwapTotal'), swap_used=mem.get('SwapTotal',0)-mem.get('SwapFree',0), cached=mem.get('Cached'))
+    settings=load_settings()
     sensors=[]; fans=[]; cpu_temp=None; apu_watts=None
+    state['fan_peaks']={}
     for h in sorted(Path('/sys/class/hwmon').glob('*')):
         name=read(h/'name','unknown')
         for f in sorted(h.glob('temp*_input')):
@@ -238,7 +281,10 @@ def collect(previous=None, with_slow=True):
             if name=='k10temp' and label=='Tctl': cpu_temp=value
         for f in sorted(h.glob('fan*_input')):
             value=number(f)
-            if value is not None: fans.append(dict(name=read(h/(f.name.replace('_input','_label')),name),value=value,unit='RPM',path=str(f)))
+            if value is not None and math.isfinite(value) and 0<=value<=100000:
+                reference,peak=fan_reference(f,value,settings,prev.get('fan_peaks',{}))
+                state['fan_peaks'][reference['identity']]=peak
+                fans.append(dict(name=read(h/(f.name.replace('_input','_label')),name),value=value,unit='RPM',path=str(f),**reference))
         if name=='amdgpu': apu_watts=number(h/'power1_average',1e6)
     gpu_path=next((p for p in Path('/sys/class/drm').glob('card[0-9]*/device') if read(p/'vendor')=='0x1002'),None)
     gpu={}; m={}
@@ -297,7 +343,8 @@ def collect(previous=None, with_slow=True):
     # Values exported by ASUS firmware are raw controls; not necessarily enforced watts.
     asus={p.name:number(p) for p in Path('/sys/devices/platform/asus-nb-wmi').glob('ppt_*')}
     limits={k:(m[k]/1000 if m.get(k) is not None else None) for k in ('stapm_power_limit','current_stapm_power_limit')}
-    out=dict(timestamp=time.time(), power_bands=power_bands(load_settings()), cpu=cpu, ram=ram, gpu=gpu, npu=npu, battery=battery,
+    bands,references=power_references(settings,limits)
+    out=dict(timestamp=time.time(), power_bands=bands, power_references=references, cpu=cpu, ram=ram, gpu=gpu, npu=npu, battery=battery,
         apu_watts=apu_watts, sensors=sensors, fans=fans, charger=charger_data(ac), profile=slow.get('profile'),
         profile_details=slow.get('profile_details'), platform_profile=read('/sys/firmware/acpi/platform_profile'),
         displays=slow.get('displays',[]), brightness=brightness, limits=limits, asus_controls=asus,

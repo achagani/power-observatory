@@ -55,6 +55,24 @@ for expression,expected in history_tests:
     assert not result.isError(),result.toString()
     assert result.toVariant()==expected,(expression,result.toVariant(),expected)
 
+# Hardware-specific ranges and labels use the actual presentation module.
+metric_engine=QJSEngine()
+metric_engine.evaluate((ROOT/'package/contents/ui/Metrics.js').read_text().replace('.pragma library',''))
+metric_cases=[
+    ("var f=build({fans:[{name:'cpu_fan',path:'a',value:9800,reference_rpm:10000,reference_source:'Driver high reference'}]})['fan:a']; f.policy.edges",[4000,8000,9500]),
+    ("f.maximum",10000),
+    ("f.policy.labels[3]",'Near reference'),
+    ("build({fans:[{name:'fan',path:'b',value:0}]})['fan:b'].policy.edges.length",0),
+    ("build({fans:[{name:'fan',path:'b',value:0,reference_rpm:4000}]})['fan:b'].value",0),
+    ("build({power_bands:{apu:[6,12,14.25]},power_references:{apu:{source:'Firmware sustained limit',maximum:15}}}).apu.maximum",15),
+    ("build({}).gpuPower.detail.indexOf('Estimated reference')",0),
+    ("build({ram:{used:8,total:16}}).ram.value",50)
+]
+for expression,expected in metric_cases:
+    result=metric_engine.evaluate(expression)
+    assert not result.isError(),result.toString()
+    assert result.toVariant()==expected,(expression,result.toVariant(),expected)
+
 view=QQuickView();view.setResizeMode(QQuickView.SizeRootObjectToView)
 view.setSource(QUrl.fromLocalFile(str(ROOT/'package/contents/ui/Dashboard.qml')))
 assert view.status()!=QQuickView.Error

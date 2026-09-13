@@ -85,7 +85,7 @@ Each card uses the same structure: **metric name + ⓘ**, current value/unit, a 
 - Every chart is labeled **Last 2 minutes**, with **−2m / −1m / now** markers. Points are placed using real sample timestamps, not sample counts.
 - Each historical segment retains the zone colors recorded then. Lines split precisely at threshold crossings. Changing thresholds does not recolor the past.
 - Missing samples, gaps over 8 seconds, and measurement-basis changes leave breaks. Startup history is empty until readings arrive; the unused past stays blank. History lives in the widget and resets when it reloads.
-- Scales stay fixed: activity/memory at 0–100%, power at the configured reference range, fans at a 6000 RPM display range, and temperatures at the reported critical value or a 120°C display range. These display ranges are not physical capability limits. Values over range remain exact and get an overflow label; the plot and meter clip at the edge.
+- Scales use discovered references: activity/memory at 0–100% of current capacity, APU power against a supported firmware sustained limit, fans against per-sensor references, and temperature against reported limits. Unsupported ranges are explicitly labeled estimated; these are not physical capability limits. Values over range remain exact and get an overflow label; the plot and meter clip at the edge.
 - **ⓘ** works on hover or keyboard focus. Click/tap or press Enter/Space to pin the explanation; Escape, Close, or an outside click dismisses it. Explanations identify units, measurement scope, thresholds and limitations.
 
 **GPU compute activity** means compute-engine time from readable applications owned by your Linux account. Other users/inaccessible processes are excluded; parallel engines can exceed 100%. It is distinct from overall GPU activity and GPU-memory allocation.
@@ -94,9 +94,9 @@ Each card uses the same structure: **metric name + ⓘ**, current value/unit, a 
 
 Memory bars show **used / total**, percentage, and capacity pressure: low below 60%, moderate from 60%, high from 85%, near full from 95%. CPU/GPU load labels use 40/80/95% boundaries. These are display conventions, not safety limits.
 
-Power meters use **green low → blue moderate → amber high → red very high draw**. The three transition values appear in each card and its info explanation. Defaults (watts):
+Power meters use **green low → blue moderate → amber high → red very high draw**. The three transition values appear in each card and its info explanation. Fallback references when no supported matching limit is exposed (watts):
 
-| Gauge | Moderate starts | High starts | Very high starts |
+| Metric | Moderate starts | High starts | Very high starts |
 | --- | ---: | ---: | ---: |
 | APU chip total | 30 | 60 | 90 |
 | CPU cores | 15 | 35 | 60 |
@@ -120,6 +120,17 @@ To override any domain, add `power_bands_watts` to the same local settings file:
 ```
 
 Each override must contain three finite, positive, increasing watt values (up to 2000 W); invalid entries fall back per domain. Settings are read on the next sample. The current-value bar saturates at its scale endpoint; the numeric value remains untruncated.
+
+### Hardware discovery and fan intensity
+
+References are established on the first sample and refreshed every sensor poll (2 seconds), including after device or firmware-limit changes. Memory capacity and thermal limits remain sensor-specific; display modes are rediscovered separately through KScreen.
+
+- **APU:** supported AMD firmware `current_stapm_power_limit`, then `stapm_power_limit`, defines the sustained reference. Zones start at 40/80/95% of that value. Explicit power-band overrides take priority. Other domains keep labeled estimated references until a backend exposes a limit matching that exact measurement scope. Charger wattage is never used as a chip or battery limit.
+- **Fans:** each channel uses an explicit user reference, otherwise its driver's `fan*_max` high reference when usable. This generic attribute is a configured threshold, **not a guaranteed rated maximum**. Without it, the estimated display range rounds that sensor's observed session peak upward to 1,000 RPM and grows as needed. It does not infer physical maximum from a peak. An idle fan with no reference stays unclassified until a positive reading arrives.
+- Fan colors indicate relative cooling effort: low below 40%, moderate below 80%, high below 95%, then **Near reference**. They do not declare thermal danger. The card and ⓘ explanation identify whether the reference is driver-reported, user-configured, estimated, or unavailable.
+- Invalid/nonfinite limits are rejected. Observed peaks are keyed to resolved sensor paths and removed when a sensor disappears from a sample. Changed thresholds start a break in the trend; earlier colors remain intact.
+
+To supply a known fan reference, add `"fan_reference_rpm": {"<sensor key from its info popup>": 10000}` to the local settings JSON. Use your own hardware's value. Resolved device paths survive ordinary hwmon index renumbering; verify settings if devices or ports change.
 
 Thermal bars use that sensor's own kernel `temp*_max` / `temp*_crit`. **Danger · critical** means the reading reaches the reported critical threshold; **High · over max** means it reaches the reported high limit. **Near critical** starts at 90% of the critical value. With no usable driver limit, the widget says **Limit unavailable** instead of inventing a safe/danger range. Missing or stale data receives no colored status.
 

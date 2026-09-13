@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+- Discover per-fan references and supported AMD sustained power limits on each poll.
+- Color fan speed relative to its own reference; remove the hardcoded 6000 RPM range.
+- Label driver, configured, estimated and unavailable references; preserve historical classifications.
+- Validate limits and provide per-sensor overrides with hardware-independent regression checks.
+
+
 ## 1.3.0 — 2026-09-12
 
 - Standardize resource cards on horizontal current meters plus unobscured trends.

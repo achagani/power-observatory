@@ -159,13 +159,17 @@
       "name": "cpu_fan",
       "value": 2400,
       "unit": "RPM",
-      "path": "Example CPU fan sensor"
+      "path": "Example CPU fan sensor",
+      "reference_rpm": 5000,
+      "reference_source": "Driver high reference"
     },
     {
       "name": "gpu_fan",
       "value": 2600,
       "unit": "RPM",
-      "path": "Example GPU fan sensor"
+      "path": "Example GPU fan sensor",
+      "reference_rpm": 5000,
+      "reference_source": "Driver high reference"
     }
   ],
   "sensors": [
